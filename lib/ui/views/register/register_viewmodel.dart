@@ -16,7 +16,6 @@ class RegisterViewModel extends BaseViewModel {
   final _dialogService = locator<DialogService>();
   AuthService get _authService => locator<AuthService>();
 
-
   bool _isStudent = false;
   bool _isTeacher = false;
 
@@ -34,12 +33,11 @@ class RegisterViewModel extends BaseViewModel {
     notifyListeners();
   }
 
-  void goToLoginPage(){
+  void goToLoginPage() {
     _navigationService.navigateToLoginView();
   }
 
-
- Future<void> register() async {
+  Future<void> register() async {
     setBusy(true);
 
     try {
@@ -63,7 +61,6 @@ class RegisterViewModel extends BaseViewModel {
         title: "Success",
         description: "Account created successfully",
       );
-
     } catch (e) {
       _dialogService.showDialog(
         title: "Error",
@@ -73,7 +70,6 @@ class RegisterViewModel extends BaseViewModel {
       setBusy(false);
     }
   }
-
 
   @override
   void dispose() {

@@ -11,9 +11,8 @@ class LoginViewModel extends BaseViewModel {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final _navigationService = locator<NavigationService>();
-   final _dialogService = locator<DialogService>();
+  final _dialogService = locator<DialogService>();
   AuthService get _authService => locator<AuthService>();
-
 
   Future<void> loginPressed() async {
     setBusy(true);
@@ -26,8 +25,6 @@ class LoginViewModel extends BaseViewModel {
 
       // ✅ SUCCESS → go to home
       _navigationService.clearStackAndShowView(const HomeView());
-
-
     } on FirebaseAuthException catch (e) {
       // ❌ Firebase errors
       if (e.code == 'user-not-found') {
@@ -51,21 +48,19 @@ class LoginViewModel extends BaseViewModel {
           description: e.message ?? "Something went wrong.",
         );
       }
-
     } catch (e) {
       // ❌ Generic error
       _dialogService.showDialog(
         title: "Error",
         description: e.toString(),
       );
-
     } finally {
       setBusy(false);
     }
   }
 
   void goToRegister() {
-     _navigationService.navigateToRegisterView();
+    _navigationService.navigateToRegisterView();
   }
 
   @override

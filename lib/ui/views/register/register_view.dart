@@ -21,21 +21,38 @@ class RegisterView extends StackedView<RegisterViewModel> {
             children: [
               const Text(
                 'Create Account',
-                style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.black),
+                style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black),
               ),
               const SizedBox(height: 30),
-              
-              _buildTextInput(label: 'Full Name', icon: Icons.person, controller: viewModel.nameController),
+
+              _buildTextInput(
+                  label: 'Full Name',
+                  icon: Icons.person,
+                  controller: viewModel.nameController),
               const SizedBox(height: 15),
-              
-              _buildTextInput(label: 'Email', icon: Icons.email, controller: viewModel.emailController),
+
+              _buildTextInput(
+                  label: 'Email',
+                  icon: Icons.email,
+                  controller: viewModel.emailController),
               const SizedBox(height: 15),
-              
-              _buildTextInput(label: 'Password', icon: Icons.lock, isPassword: true, controller: viewModel.passwordController),
+
+              _buildTextInput(
+                  label: 'Password',
+                  icon: Icons.lock,
+                  isPassword: true,
+                  controller: viewModel.passwordController),
               const SizedBox(height: 15),
-              
-              _buildTextInput(label: 'Confirm Password', icon: Icons.lock_outline, isPassword: true, controller: viewModel.confirmPasswordController),
-              
+
+              _buildTextInput(
+                  label: 'Confirm Password',
+                  icon: Icons.lock_outline,
+                  isPassword: true,
+                  controller: viewModel.confirmPasswordController),
+
               const SizedBox(height: 20),
 
               // Role Selection Checkboxes
@@ -43,7 +60,8 @@ class RegisterView extends StackedView<RegisterViewModel> {
                 children: [
                   Expanded(
                     child: CheckboxListTile(
-                      title: const Text("Student", style: TextStyle(fontSize: 14)),
+                      title:
+                          const Text("Student", style: TextStyle(fontSize: 14)),
                       value: viewModel.isStudent,
                       onChanged: (val) => viewModel.setRole(isStudent: true),
                       controlAffinity: ListTileControlAffinity.leading,
@@ -52,7 +70,8 @@ class RegisterView extends StackedView<RegisterViewModel> {
                   ),
                   Expanded(
                     child: CheckboxListTile(
-                      title: const Text("Teacher", style: TextStyle(fontSize: 14)),
+                      title:
+                          const Text("Teacher", style: TextStyle(fontSize: 14)),
                       value: viewModel.isTeacher,
                       onChanged: (val) => viewModel.setRole(isStudent: false),
                       controlAffinity: ListTileControlAffinity.leading,
@@ -63,24 +82,27 @@ class RegisterView extends StackedView<RegisterViewModel> {
               ),
 
               const SizedBox(height: 30),
-              
+
               ElevatedButton(
                 onPressed: viewModel.register,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[800],
                   foregroundColor: Colors.white,
                   minimumSize: const Size(double.infinity, 50),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
                 ),
                 child: const Text('Register', style: TextStyle(fontSize: 18)),
               ),
 
               GestureDetector(
-                onTap: (){viewModel.goToLoginPage();},
+                onTap: () {
+                  viewModel.goToLoginPage();
+                },
                 child: const Padding(
                   padding: const EdgeInsetsGeometry.only(top: 20),
                   child: Text("Already have an account"),
-                  ),
+                ),
               )
             ],
           ),
@@ -112,5 +134,6 @@ class RegisterView extends StackedView<RegisterViewModel> {
   }
 
   @override
-  RegisterViewModel viewModelBuilder(BuildContext context) => RegisterViewModel();
+  RegisterViewModel viewModelBuilder(BuildContext context) =>
+      RegisterViewModel();
 }
