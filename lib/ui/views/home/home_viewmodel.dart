@@ -57,10 +57,6 @@ class HomeViewModel extends BaseViewModel {
 
     try {
       final userData = await _authService.getUserData();
-      final user = await _authService.getUser();
-      debugPrint("User: $user");
-      debugPrint("Display name: ${user!.displayName}");
-      debugPrint("User Data: ${userData}");
 
       if (userData != null) {
         role = userData['role'] ?? "student";
