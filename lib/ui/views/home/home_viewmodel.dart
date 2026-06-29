@@ -271,20 +271,20 @@ class HomeViewModel extends BaseViewModel {
     final question = messages.last['text'];
 
     final chunks = await searchKnowledgeChunks(question);
-    final context = chunks.join('\n\n');
+    final knowledgeBase = chunks.join('\n\n');
 
     // 1. Declare the initial target model name as a variable
     String activeModelName = 'models/gemini-3.5-flash';
 
     final prompt = """
-      -Answer the user's question using the provided context.
+      -Answer the user's question using the provided Knowledge Base.
       -Be conversational and friendly but do not sound like a redundant robot, stop saying hi or hello unless it is the first of the conversation.
       -Also refer to previous conversation when answering.
-      -If the question is not found in context, just find the answer from the internet but inform the user first that you cannot find the answer from the provided knowledge base. 
+      -If the question is not found in Knowledge Base, just find the answer from the internet but inform the user first that you cannot find the answer from the provided knowledge base. 
       -When answering see yourself as an expert in the medical field helping students.
 
       Context:
-      $context
+      $knowledgeBase
 
       Question:
       $question
