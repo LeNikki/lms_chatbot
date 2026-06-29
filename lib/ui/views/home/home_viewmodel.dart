@@ -260,86 +260,89 @@ class HomeViewModel extends BaseViewModel {
       }
 
 
-      Future<void> _mockAiResponse() async {
-       
-          try {
-            isAiTyping = true;
-            notifyListeners();
-            final question = messages.last['text'];
+  Future<void> _mockAiResponse() async {
+  try {
+    isAiTyping = true;
+    notifyListeners();
+    final question = messages.last['text'];
 
-            final chunks = await searchKnowledgeChunks(question);
+    final chunks = await searchKnowledgeChunks(question);
+    final context = chunks.join('\n\n');
 
-            final context = chunks.join('\n\n');
+    // 1. Declare the initial target model name as a variable
+    String activeModelName = 'models/gemini-3.5-flash';
 
-            final model = GenerativeModel(
-              model: 'models/gemini-3.5-flash',
-              apiKey: ApiConfigs.API_KEY,
-            );
+    final prompt = """
+      -Answer the user's question using the provided context.
+      -Be conversational and friendly but do not sound like a redundant robot, stop saying hi or hello unless it is the first of the conversation.
+      -Also refer to previous conversation when answering.
 
-            final prompt = """
-              -Answer the user's question using the provided context.
-              -Be conversational and friendly but do not sound like a redundant robot, stop saying hi or hello unless it is the first of the conversation.
-              -Also refer to previous conversation when answering.
+      Context:
+      $context
 
+      Question:
+      $question
+      """;
 
-              Context:
-              $context
+    // 2. Initialize a mutable response container
+    GenerateContentResponse response;
 
-              Question:
-              $question
-              """;
+    try {
+      // First attempt with your primary model
+      final model = GenerativeModel(
+        model: activeModelName,
+        apiKey: ApiConfigs.API_KEY,
+      );
+      response = await model.generateContent([Content.text(prompt)]);
+      
+    } catch (apiError) {
+      // 3. Inspect if the crash is a 503 Overload Exception
+      final errorMessage = apiError.toString();
+      final is503 = errorMessage.contains('503') || errorMessage.toLowerCase().contains('unavailable');
 
-            final response = await model.generateContent([
-              Content.text(prompt),
-            ]);
+      if (is503) {
+        print("Google servers 503 overloaded. Falling back to gemini-2.5-flash...");
+        
+        // Brief cooldown to let the server spike pass
+        await Future.delayed(const Duration(seconds: 2));
 
-            messages.add({
-              'text': response.text ?? 'No response.',
-              'isUser': false,
-            });
+        // Switch to the stable workhorse Flash model
+        activeModelName = 'models/gemini-2.5-flash';
+        
+        final fallbackModel = GenerativeModel(
+          model: activeModelName,
+          apiKey: ApiConfigs.API_KEY,
+        );
+        
+        // Execute the retry request
+        response = await fallbackModel.generateContent([Content.text(prompt)]);
+      } else {
+        // If it's a 400 Bad Request, 403 Invalid Key, etc., bubble it up to the outer catch block
+        rethrow;
+      }
+    }
 
-            notifyListeners();
-          } catch (e) {
-            messages.add({
-              'text': 'Error: $e',
-              'isUser': false,
-            });
+    // 4. Safely parse and append the finalized response text
+    messages.add({
+      'text': response.text ?? 'No response.',
+      'isUser': false,
+    });
 
-            notifyListeners();
-          }
-          isAiTyping = false;
-          notifyListeners();
-        }
+    notifyListeners();
+  } catch (e) {
+    // Catches generic code breaks, connection deadlocks, or non-503 API fails
+    messages.add({
+      'text': 'Error: $e',
+      'isUser': false,
+    });
 
-
-    
-
-    
-
-//     Future<void> testGeminiHttp() async {
-//   const apiKey = 'YOUR_NEW_KEY';
-
-//   final response = await http.post(
-//     Uri.parse(
-//       'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=$apiKey',
-//     ),
-//     headers: {
-//       'Content-Type': 'application/json',
-//     },
-//     body: jsonEncode({
-//       'contents': [
-//         {
-//           'parts': [
-//             {'text': 'Hello'}
-//           ]
-//         }
-//       ]
-//     }),
-//   );
-
-//   print('STATUS: ${response.statusCode}');
-//   print(response.body);
-// }
+    notifyListeners();
+  } finally {
+    // Ensures state changes even if everything throws a hard crash
+    isAiTyping = false;
+    notifyListeners();
+  }
+}
 
   @override
   void dispose() {
