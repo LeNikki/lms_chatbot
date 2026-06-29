@@ -25,7 +25,7 @@ class HomeViewModel extends BaseViewModel {
   final _authService = locator<AuthService>();
   final _dialogService = locator<DialogService>();
 
-  // 🔥 USER DATA
+  // USER DATA
   String role = "student";
   String name = "User";
   bool isAiTyping = false;
@@ -36,7 +36,7 @@ class HomeViewModel extends BaseViewModel {
 
   // Chat messages
   List<Map<String, dynamic>> messages = [
-    {'text': 'Hello! How can I help you today?', 'isUser': false},
+    {'text': 'Hello! Which topic should we learn today?', 'isUser': false},
   ];
 
   Color get primaryColor {
@@ -57,6 +57,10 @@ class HomeViewModel extends BaseViewModel {
 
     try {
       final userData = await _authService.getUserData();
+      final user = await _authService.getUser();
+      debugPrint("User: $user");
+      debugPrint("Display name: ${user!.displayName}");
+      debugPrint("User Data: ${userData}");
 
       if (userData != null) {
         role = userData['role'] ?? "student";
@@ -276,6 +280,8 @@ class HomeViewModel extends BaseViewModel {
       -Answer the user's question using the provided context.
       -Be conversational and friendly but do not sound like a redundant robot, stop saying hi or hello unless it is the first of the conversation.
       -Also refer to previous conversation when answering.
+      -If the question is not found in context, just find the answer from the internet but inform the user first that you cannot find the answer from the provided knowledge base. 
+      -When answering see yourself as an expert in the medical field helping students.
 
       Context:
       $context

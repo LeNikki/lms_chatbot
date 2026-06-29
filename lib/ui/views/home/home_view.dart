@@ -11,7 +11,7 @@ class HomeView extends StatelessWidget {
   Widget build(BuildContext context) {
     return ViewModelBuilder<HomeViewModel>.reactive(
       viewModelBuilder: () => HomeViewModel(),
-      onModelReady: (vm) => vm.init(),
+      onViewModelReady: (vm) async => await vm.init(),
       builder: (context, vm, child) {
         return Scaffold(
           backgroundColor: vm.backgroundColor,
@@ -52,7 +52,9 @@ class HomeView extends StatelessWidget {
                   title: const Text("Logout"),
                   onTap: vm.logout,
                 ),
-                Align(
+                Visibility(
+                visible: vm.role!="student",
+                child: Align(
                   alignment: Alignment.bottomLeft,
                   child: GestureDetector(
                       onTap: () {
@@ -66,6 +68,7 @@ class HomeView extends StatelessWidget {
                             color: Colors.blue),
                         child: Text("Upload Learning Material"),
                       )),
+                )
                 )
               ],
             ),
