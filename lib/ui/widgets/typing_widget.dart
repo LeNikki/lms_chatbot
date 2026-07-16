@@ -31,8 +31,7 @@ class _TypingBubbleState extends State<TypingBubble>
     return AnimatedBuilder(
       animation: _controller,
       builder: (_, __) {
-        final value =
-            ((_controller.value + delay) % 1.0);
+        final value = ((_controller.value + delay) % 1.0);
 
         return Padding(
           padding: const EdgeInsets.symmetric(horizontal: 2),

@@ -1,22 +1,18 @@
 import 'dart:convert';
 import 'dart:io';
- import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:lms_chatbot/app/app.dialogs.dart';
 import 'package:lms_chatbot/app/app.locator.dart';
 import 'package:lms_chatbot/app/app.router.dart';
+import 'package:lms_chatbot/core/models/knowledge_chunks.dart';
 import 'package:lms_chatbot/core/services/authservice.dart';
 import 'package:lms_chatbot/core/services/constants/ApiConfigs.dart';
 import 'package:stacked/stacked.dart';
 import 'package:stacked_services/stacked_services.dart';
-import 'package:flutter/material.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-import 'package:file_picker/file_picker.dart';
-import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_pdf/pdf.dart';
-import 'package:http/http.dart' as http;
 
 class HomeViewModel extends BaseViewModel {
   final TextEditingController messageController = TextEditingController();
@@ -24,6 +20,11 @@ class HomeViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
   final _authService = locator<AuthService>();
   final _dialogService = locator<DialogService>();
+  late final GenerativeModel flashModel;
+  late final GenerativeModel fallbackModel;
+  List<KnowledgeChunk> _knowledgeCache = [];
+  String uploadStatus = "";
+  double uploadProgress = 0;
 
   // USER DATA
   String role = "student";
@@ -51,9 +52,20 @@ class HomeViewModel extends BaseViewModel {
     return role == "teacher" ? Colors.blue.shade100 : Colors.pink.shade100;
   }
 
-  // 🔥 INIT (MUST BE CALLED FROM VIEW)
   Future<void> init() async {
     setBusy(true);
+
+    await loadKnowledgeBase();
+
+    flashModel = GenerativeModel(
+      model: 'models/gemini-3.5-flash',
+      apiKey: ApiConfigs.API_KEY,
+    );
+
+    fallbackModel = GenerativeModel(
+      model: 'models/gemini-2.5-flash',
+      apiKey: ApiConfigs.API_KEY,
+    );
 
     try {
       final userData = await _authService.getUserData();
@@ -68,6 +80,19 @@ class HomeViewModel extends BaseViewModel {
 
     setBusy(false);
     notifyListeners();
+  }
+
+  Future<void> loadKnowledgeBase() async {
+    final snapshot =
+        await FirebaseFirestore.instance.collection('knowledge_chunks').get();
+
+    _knowledgeCache = snapshot.docs.map((doc) {
+      return KnowledgeChunk(
+        content: doc['content'],
+        chunkIndex: doc['chunkIndex'],
+        fileName: doc['fileName'],
+      );
+    }).toList();
   }
 
   void toggleSidebar() {
@@ -93,191 +118,223 @@ class HomeViewModel extends BaseViewModel {
     _navigationService.navigateToLoginView();
   }
 
-  
-
   Future<String> extractPdfText(File file) async {
-  final bytes = await file.readAsBytes();
+    final bytes = await file.readAsBytes();
 
-  final document = PdfDocument(inputBytes: bytes);
+    final document = PdfDocument(inputBytes: bytes);
 
-  final text = PdfTextExtractor(document).extractText();
+    final text = PdfTextExtractor(document).extractText();
 
-  document.dispose();
+    document.dispose();
 
-  return text;
+    return text;
   }
 
-    List<String> splitIntoChunks(
-      String text, {
-      int chunkSize = 1000,
-    }) {
-      List<String> chunks = [];
+  Iterable<String> splitIntoChunks(
+    String text, {
+    int chunkSize = 1000,
+  }) sync* {
+    for (int i = 0; i < text.length; i += chunkSize) {
+      final end = (i + chunkSize > text.length) ? text.length : i + chunkSize;
 
-      for (int i = 0; i < text.length; i += chunkSize) {
-        int end = i + chunkSize;
+      yield text.substring(i, end);
+    }
+  }
 
-        if (end > text.length) {
-          end = text.length;
-        }
+  Future<void> processPdfForKnowledgeBase() async {
+    setBusy(true);
 
-        chunks.add(text.substring(i, end));
+    try {
+      final result = await FilePicker.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
+      );
+
+      if (result == null || result.files.isEmpty) {
+        return;
       }
 
-      return chunks;
-    }
+      int successCount = 0;
+      int failedCount = 0;
+      int totalChunks = 0;
 
-    Future<void> processPdfForKnowledgeBase() async {
+      for (int i = 0; i < result.files.length; i++) {
+        final pickedFile = result.files[i];
+
+        uploadStatus =
+            "Uploading ${pickedFile.name}\n(${i + 1}/${result.files.length})";
+        uploadProgress = (i + 1) / result.files.length;
+        notifyListeners();
+
         try {
-          final result = await FilePicker.pickFiles(
-            type: FileType.custom,
-            allowedExtensions: ['pdf'],
-          );
-
-          if (result == null || result.files.isEmpty) {
-            return;
-          }
-
-          final path = result.files.single.path;
+          final path = pickedFile.path;
 
           if (path == null) {
-            return;
+            failedCount++;
+            continue;
           }
 
           final file = File(path);
-          final fileName = result.files.single.name;
 
           // Extract text
           final text = await extractPdfText(file);
 
           if (text.trim().isEmpty) {
-            throw Exception('No text found in PDF');
+            failedCount++;
+            continue;
           }
 
-          // Split text
+          // Split into chunks (lazy)
           final chunks = splitIntoChunks(
             text,
             chunkSize: 1000,
           );
 
-          // Save
+          // Upload chunks
           await saveKnowledgeChunks(
-            fileName: fileName,
+            fileName: pickedFile.name,
             chunks: chunks,
           );
 
-          await _dialogService.showCustomDialog(
-            variant: DialogType.infoAlert,
-            title: 'Success',
-            description:
-                'PDF processed successfully. ${chunks.length} chunks saved.',
-          );
+          successCount++;
+          totalChunks += (text.length / 1000).ceil();
+
+          // Give Flutter a chance to repaint the UI
+          await Future.delayed(Duration.zero);
         } catch (e) {
-          await _dialogService.showCustomDialog(
-            variant: DialogType.infoAlert,
-            title: 'Error',
-            description: e.toString(),
-          );
+          debugPrint("Failed to process ${pickedFile.name}: $e");
+          failedCount++;
         }
       }
 
-    
-    Future<void> saveKnowledgeChunks({
-        required String fileName,
-        required List<String> chunks,
-      }) async {
-        final firestore = FirebaseFirestore.instance;
+      await _dialogService.showCustomDialog(
+        variant: DialogType.infoAlert,
+        title: 'Upload Complete',
+        description: '$successCount PDF(s) uploaded successfully.\n'
+            '$failedCount PDF(s) failed.\n\n'
+            'Total chunks uploaded: $totalChunks',
+      );
+    } catch (e) {
+      await _dialogService.showCustomDialog(
+        variant: DialogType.infoAlert,
+        title: 'Error',
+        description: e.toString(),
+      );
+    } finally {
+      uploadStatus = "";
+      uploadProgress = 0;
+      notifyListeners();
+      setBusy(false);
+    }
+  }
 
-        final batch = firestore.batch();
+  Future<void> saveKnowledgeChunks({
+    required String fileName,
+    required Iterable<String> chunks,
+  }) async {
+    final firestore = FirebaseFirestore.instance;
 
-        for (int i = 0; i < chunks.length; i++) {
-          final docRef = firestore.collection('knowledge_chunks').doc();
+    const batchLimit = 400;
 
-          batch.set(docRef, {
-            'fileName': fileName,
-            'chunkIndex': i,
-            'content': chunks[i],
-            'uploadedAt': FieldValue.serverTimestamp(),
-            'chunkCount': chunks.length,
-          });
-        }
+    WriteBatch batch = firestore.batch();
 
+    int batchWrites = 0;
+    int chunkIndex = 0;
+
+    for (final chunk in chunks) {
+      final docRef = firestore.collection('knowledge_chunks').doc();
+
+      batch.set(docRef, {
+        'fileName': fileName,
+        'chunkIndex': chunkIndex,
+        'content': chunk,
+        'uploadedAt': FieldValue.serverTimestamp(),
+      });
+
+      _knowledgeCache.add(
+        KnowledgeChunk(
+          fileName: fileName,
+          chunkIndex: chunkIndex,
+          content: chunk,
+        ),
+      );
+
+      batchWrites++;
+      chunkIndex++;
+
+      if (batchWrites == batchLimit) {
         await batch.commit();
+
+        batch = firestore.batch();
+        batchWrites = 0;
       }
+    }
 
-      Future<List<String>> getKnowledgeChunks() async {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('knowledge_chunks')
-            .orderBy('chunkIndex')
-            .get();
+    if (batchWrites > 0) {
+      await batch.commit();
+    }
+  }
 
-        return snapshot.docs
-            .map((e) => e['content'] as String)
-            .toList();
-      }
+  Future<List<String>> getKnowledgeChunks() async {
+    final snapshot = await FirebaseFirestore.instance
+        .collection('knowledge_chunks')
+        .orderBy('chunkIndex')
+        .get();
 
-     Future<List<String>> searchKnowledgeChunks(String query) async {
-        final snapshot = await FirebaseFirestore.instance
-            .collection('knowledge_chunks')
-            .get();
+    return snapshot.docs.map((e) => e['content'] as String).toList();
+  }
 
-        final queryWords = query
-            .toLowerCase()
-            .replaceAll(RegExp(r'[^\w\s]'), '')
-            .split(RegExp(r'\s+'))
-            .where((word) => word.length > 2)
-            .toList();
+  Future<List<String>> searchKnowledgeChunks(String query) async {
+    final queryWords = query
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^\w\s]'), '')
+        .split(RegExp(r'\s+'))
+        .where((e) => e.length > 2)
+        .toList();
 
-        final scoredChunks = <Map<String, dynamic>>[];
+    final scoredChunks = <Map<String, dynamic>>[];
 
-        for (final doc in snapshot.docs) {
-          final content =
-              (doc.data()['content'] ?? '').toString().toLowerCase();
+    for (final chunk in _knowledgeCache) {
+      int score = 0;
 
-          int score = 0;
+      final content = chunk.content.toLowerCase();
 
-          for (final word in queryWords) {
-            if (content.contains(word)) {
-              score++;
-            }
-          }
-
-          if (score > 0) {
-            scoredChunks.add({
-              'score': score,
-              'content': doc.data()['content'],
-            });
-          }
+      for (final word in queryWords) {
+        if (content.contains(word)) {
+          score++;
         }
-
-        scoredChunks.sort(
-          (a, b) => (b['score'] as int).compareTo(a['score'] as int),
-        );
-
-        return scoredChunks
-            .take(5)
-            .map((e) => e['content'].toString())
-            .toList();
       }
 
+      if (score > 0) {
+        scoredChunks.add({
+          'score': score,
+          'content': chunk.content,
+        });
+      }
+    }
+
+    scoredChunks.sort(
+      (a, b) => (b['score'] as int).compareTo(a['score'] as int),
+    );
+
+    return scoredChunks.take(5).map((e) => e['content'].toString()).toList();
+  }
 
   Future<void> _mockAiResponse() async {
-  try {
-    isAiTyping = true;
-    notifyListeners();
-    final question = messages.last['text'];
+    try {
+      isAiTyping = true;
+      notifyListeners();
+      final question = messages.last['text'];
 
-    final chunks = await searchKnowledgeChunks(question);
-    final knowledgeBase = chunks.join('\n\n');
+      final chunks = await searchKnowledgeChunks(question);
+      final knowledgeBase = chunks.join('\n\n');
 
-    // 1. Declare the initial target model name as a variable
-    String activeModelName = 'models/gemini-3.5-flash';
-
-    final prompt = """
+      final prompt = """
       -Answer the user's question using the provided Knowledge Base.
       -Be conversational and friendly but do not sound like a redundant robot, stop saying hi or hello unless it is the first of the conversation.
       -Also refer to previous conversation when answering.
       -If the question is not found in Knowledge Base, just find the answer from the internet but inform the user first that you cannot find the answer from the provided knowledge base. 
-      -When answering see yourself as an expert in the medical field helping students.
 
       Context:
       $knowledgeBase
@@ -286,65 +343,43 @@ class HomeViewModel extends BaseViewModel {
       $question
       """;
 
-    // 2. Initialize a mutable response container
-    GenerateContentResponse response;
+      GenerateContentResponse response;
 
-    try {
-      // First attempt with your primary model
-      final model = GenerativeModel(
-        model: activeModelName,
-        apiKey: ApiConfigs.API_KEY,
-      );
-      response = await model.generateContent([Content.text(prompt)]);
-      
-    } catch (apiError) {
-      // 3. Inspect if the crash is a 503 Overload Exception
-      final errorMessage = apiError.toString();
-      final is503 = errorMessage.contains('503') || errorMessage.toLowerCase().contains('unavailable');
+      try {
+        response = await flashModel.generateContent([Content.text(prompt)]);
+      } catch (apiError) {
+        final errorMessage = apiError.toString();
+        final is503 = errorMessage.contains('503') ||
+            errorMessage.toLowerCase().contains('unavailable');
 
-      if (is503) {
-        print("Google servers 503 overloaded. Falling back to gemini-2.5-flash...");
-        
-        // Brief cooldown to let the server spike pass
-        await Future.delayed(const Duration(seconds: 2));
+        if (is503) {
+          await Future.delayed(const Duration(seconds: 2));
 
-        // Switch to the stable workhorse Flash model
-        activeModelName = 'models/gemini-2.5-flash';
-        
-        final fallbackModel = GenerativeModel(
-          model: activeModelName,
-          apiKey: ApiConfigs.API_KEY,
-        );
-        
-        // Execute the retry request
-        response = await fallbackModel.generateContent([Content.text(prompt)]);
-      } else {
-        // If it's a 400 Bad Request, 403 Invalid Key, etc., bubble it up to the outer catch block
-        rethrow;
+          response =
+              await fallbackModel.generateContent([Content.text(prompt)]);
+        } else {
+          rethrow;
+        }
       }
+
+      messages.add({
+        'text': response.text ?? 'No response.',
+        'isUser': false,
+      });
+
+      notifyListeners();
+    } catch (e) {
+      messages.add({
+        'text': 'Error: $e',
+        'isUser': false,
+      });
+
+      notifyListeners();
+    } finally {
+      isAiTyping = false;
+      notifyListeners();
     }
-
-    // 4. Safely parse and append the finalized response text
-    messages.add({
-      'text': response.text ?? 'No response.',
-      'isUser': false,
-    });
-
-    notifyListeners();
-  } catch (e) {
-    // Catches generic code breaks, connection deadlocks, or non-503 API fails
-    messages.add({
-      'text': 'Error: $e',
-      'isUser': false,
-    });
-
-    notifyListeners();
-  } finally {
-    // Ensures state changes even if everything throws a hard crash
-    isAiTyping = false;
-    notifyListeners();
   }
-}
 
   @override
   void dispose() {

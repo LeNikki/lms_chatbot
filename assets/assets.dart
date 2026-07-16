@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 
-class AssetImages{
+class AssetImages {
   const AssetImages();
-   
+
   static const root = 'assets/png_assets';
-  
 }
