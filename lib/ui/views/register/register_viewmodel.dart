@@ -64,7 +64,7 @@ class RegisterViewModel extends BaseViewModel {
     } catch (e) {
       _dialogService.showDialog(
         title: "Error",
-        description: e.toString(),
+        description: "Error creating an account, make sure to fill up all required fields",
       );
     } finally {
       setBusy(false);

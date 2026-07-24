@@ -132,7 +132,7 @@ class HomeView extends StackedView<HomeViewModel> {
                     ),
                     if (viewModel.isUploading)
                       Positioned(
-                        bottom: 50,
+                        bottom: 70,
                         left: 16,
                         right: 16,
                         child: IgnorePointer(
