@@ -1,18 +1,16 @@
-import 'dart:convert';
-import 'dart:io';
-import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:lms_chatbot/app/app.dialogs.dart';
 import 'package:lms_chatbot/app/app.locator.dart';
 import 'package:lms_chatbot/app/app.router.dart';
 import 'package:lms_chatbot/core/models/knowledge_chunks.dart';
 import 'package:lms_chatbot/core/services/authservice.dart';
 import 'package:lms_chatbot/core/services/constants/ApiConfigs.dart';
+import 'package:lms_chatbot/core/services/pdf_processing.dart';
 import 'package:stacked/stacked.dart';
 import 'package:stacked_services/stacked_services.dart';
-import 'package:syncfusion_flutter_pdf/pdf.dart';
 
 class HomeViewModel extends BaseViewModel {
   final TextEditingController messageController = TextEditingController();
@@ -20,14 +18,20 @@ class HomeViewModel extends BaseViewModel {
   final _navigationService = locator<NavigationService>();
   final _authService = locator<AuthService>();
   final _dialogService = locator<DialogService>();
-  late final GenerativeModel flashModel;
-  late final GenerativeModel fallbackModel;
+  GenerativeModel? flashModel;
+  GenerativeModel? fallbackModel;
   List<KnowledgeChunk> _knowledgeCache = [];
   String uploadStatus = "";
   double uploadProgress = 0;
+  bool _isUploading = false;
+  bool get isUploading => _isUploading;
+  bool _uploadComplete = false;
+  bool get uploadComplete => _uploadComplete;
+  String _uploadCompleteMessage = "";
+  String get uploadCompleteMessage => _uploadCompleteMessage;
 
   // USER DATA
-  String role = "student";
+  String role = "";
   String name = "User";
   bool isAiTyping = false;
 
@@ -35,47 +39,48 @@ class HomeViewModel extends BaseViewModel {
   bool _showSidebar = false;
   bool get showSidebar => _showSidebar;
 
-  // Chat messages
   List<Map<String, dynamic>> messages = [
     {'text': 'Hello! Which topic should we learn today?', 'isUser': false},
   ];
 
   Color get primaryColor {
+    if (role.isEmpty) return Colors.grey;
     return role == "teacher" ? Colors.blue : Colors.pink;
   }
 
   Color get backgroundColor {
+    if (role.isEmpty) return Colors.grey.shade50;
     return role == "teacher" ? Colors.blue.shade50 : Colors.pink.shade50;
   }
 
   Color get drawerColor {
+    if (role.isEmpty) return Colors.grey.shade200;
     return role == "teacher" ? Colors.blue.shade100 : Colors.pink.shade100;
   }
 
   Future<void> init() async {
     setBusy(true);
 
-    await loadKnowledgeBase();
-
-    flashModel = GenerativeModel(
-      model: 'models/gemini-3.5-flash',
-      apiKey: ApiConfigs.API_KEY,
-    );
-
-    fallbackModel = GenerativeModel(
-      model: 'models/gemini-2.5-flash',
-      apiKey: ApiConfigs.API_KEY,
-    );
-
     try {
-      final userData = await _authService.getUserData();
+      flashModel = GenerativeModel(
+        model: 'models/gemini-3.5-flash',
+        apiKey: ApiConfigs.API_KEY,
+      );
 
+      fallbackModel = GenerativeModel(
+        model: 'models/gemini-2.5-flash',
+        apiKey: ApiConfigs.API_KEY,
+      );
+
+      await loadKnowledgeBase();
+
+      final userData = await _authService.getUserData();
       if (userData != null) {
-        role = userData['role'] ?? "student";
-        name = userData['name'] ?? "User";
+        role = userData['role'] ?? 'student';
+        name = userData['name'] ?? 'User';
       }
     } catch (e) {
-      debugPrint("Error loading user: $e");
+      debugPrint("Error during init: $e");
     }
 
     setBusy(false);
@@ -83,12 +88,15 @@ class HomeViewModel extends BaseViewModel {
   }
 
   Future<void> loadKnowledgeBase() async {
-    final snapshot =
-        await FirebaseFirestore.instance.collection('knowledge_chunks').get();
+    final snapshot = await FirebaseFirestore.instance
+        .collection('knowledge_chunks')
+        .orderBy('uploadedAt', descending: true)
+        .limit(1)
+        .get();
 
     _knowledgeCache = snapshot.docs.map((doc) {
       return KnowledgeChunk(
-        content: doc['content'],
+        content: '',
         chunkIndex: doc['chunkIndex'],
         fileName: doc['fileName'],
       );
@@ -118,31 +126,16 @@ class HomeViewModel extends BaseViewModel {
     _navigationService.navigateToLoginView();
   }
 
-  Future<String> extractPdfText(File file) async {
-    final bytes = await file.readAsBytes();
-
-    final document = PdfDocument(inputBytes: bytes);
-
-    final text = PdfTextExtractor(document).extractText();
-
-    document.dispose();
-
-    return text;
-  }
-
-  Iterable<String> splitIntoChunks(
-    String text, {
-    int chunkSize = 1000,
-  }) sync* {
-    for (int i = 0; i < text.length; i += chunkSize) {
-      final end = (i + chunkSize > text.length) ? text.length : i + chunkSize;
-
-      yield text.substring(i, end);
-    }
-  }
-
   Future<void> processPdfForKnowledgeBase() async {
-    setBusy(true);
+    if (_isUploading) {
+      await _dialogService.showCustomDialog(
+        variant: DialogType.infoAlert,
+        title: 'Upload In Progress',
+        description:
+            'Please wait for the current file upload to finish before uploading another file.',
+      );
+      return;
+    }
 
     try {
       final result = await FilePicker.pickFiles(
@@ -155,9 +148,11 @@ class HomeViewModel extends BaseViewModel {
         return;
       }
 
+      _isUploading = true;
+      notifyListeners();
+
       int successCount = 0;
-      int failedCount = 0;
-      int totalChunks = 0;
+      final errors = <String>[];
 
       for (int i = 0; i < result.files.length; i++) {
         final pickedFile = result.files[i];
@@ -167,54 +162,78 @@ class HomeViewModel extends BaseViewModel {
         uploadProgress = (i + 1) / result.files.length;
         notifyListeners();
 
+        await Future.delayed(const Duration(milliseconds: 50));
+
+        final path = pickedFile.path;
+        if (path == null) {
+          errors.add('"${pickedFile.name}": file not found on device.');
+          continue;
+        }
+
+        final sizeCheck = validatePdfSize(path, pickedFile.name);
+        if (!sizeCheck.isValid) {
+          errors.add(sizeCheck.error!);
+          continue;
+        }
+
         try {
-          final path = pickedFile.path;
+          uploadStatus = "Reading ${pickedFile.name}...";
+          uploadProgress = 0;
+          notifyListeners();
 
-          if (path == null) {
-            failedCount++;
-            continue;
-          }
+          int chunkCount = 0;
+          bool hasContent = false;
 
-          final file = File(path);
+          await processPdfPages(
+            filePath: path,
+            onChunk: (chunk) async {
+              hasContent = true;
+              chunkCount++;
+              uploadStatus =
+                  "Uploading ${pickedFile.name}\nChunk $chunkCount";
+              notifyListeners();
 
-          // Extract text
-          final text = await extractPdfText(file);
-
-          if (text.trim().isEmpty) {
-            failedCount++;
-            continue;
-          }
-
-          // Split into chunks (lazy)
-          final chunks = splitIntoChunks(
-            text,
-            chunkSize: 1000,
+              await _saveSingleChunk(
+                fileName: pickedFile.name,
+                chunk: chunk,
+                chunkIndex: chunkCount - 1,
+              );
+            },
           );
 
-          // Upload chunks
-          await saveKnowledgeChunks(
-            fileName: pickedFile.name,
-            chunks: chunks,
-          );
+          await Future.delayed(const Duration(milliseconds: 100));
+
+          if (!hasContent) {
+            errors.add('"${pickedFile.name}": no text content found.');
+            continue;
+          }
 
           successCount++;
-          totalChunks += (text.length / 1000).ceil();
-
-          // Give Flutter a chance to repaint the UI
-          await Future.delayed(Duration.zero);
         } catch (e) {
           debugPrint("Failed to process ${pickedFile.name}: $e");
-          failedCount++;
+          errors.add('"${pickedFile.name}": ${e.toString()}');
         }
+
+        await Future.delayed(const Duration(milliseconds: 50));
       }
 
-      await _dialogService.showCustomDialog(
-        variant: DialogType.infoAlert,
-        title: 'Upload Complete',
-        description: '$successCount PDF(s) uploaded successfully.\n'
-            '$failedCount PDF(s) failed.\n\n'
-            'Total chunks uploaded: $totalChunks',
-      );
+      if (successCount > 0) {
+        _uploadCompleteMessage =
+            '$successCount PDF(s) uploaded successfully';
+        _uploadComplete = true;
+        notifyListeners();
+        await Future.delayed(const Duration(seconds: 3));
+        _uploadComplete = false;
+        _uploadCompleteMessage = "";
+      }
+
+      if (errors.isNotEmpty) {
+        await _dialogService.showCustomDialog(
+          variant: DialogType.infoAlert,
+          title: 'Upload Errors',
+          description: errors.join('\n'),
+        );
+      }
     } catch (e) {
       await _dialogService.showCustomDialog(
         variant: DialogType.infoAlert,
@@ -224,55 +243,35 @@ class HomeViewModel extends BaseViewModel {
     } finally {
       uploadStatus = "";
       uploadProgress = 0;
+      _isUploading = false;
       notifyListeners();
-      setBusy(false);
     }
   }
 
-  Future<void> saveKnowledgeChunks({
+  Future<void> _saveSingleChunk({
     required String fileName,
-    required Iterable<String> chunks,
+    required String chunk,
+    required int chunkIndex,
   }) async {
     final firestore = FirebaseFirestore.instance;
+    const maxRetries = 3;
 
-    const batchLimit = 400;
+    final docRef = firestore.collection('knowledge_chunks').doc();
 
-    WriteBatch batch = firestore.batch();
-
-    int batchWrites = 0;
-    int chunkIndex = 0;
-
-    for (final chunk in chunks) {
-      final docRef = firestore.collection('knowledge_chunks').doc();
-
-      batch.set(docRef, {
-        'fileName': fileName,
-        'chunkIndex': chunkIndex,
-        'content': chunk,
-        'uploadedAt': FieldValue.serverTimestamp(),
-      });
-
-      _knowledgeCache.add(
-        KnowledgeChunk(
-          fileName: fileName,
-          chunkIndex: chunkIndex,
-          content: chunk,
-        ),
-      );
-
-      batchWrites++;
-      chunkIndex++;
-
-      if (batchWrites == batchLimit) {
-        await batch.commit();
-
-        batch = firestore.batch();
-        batchWrites = 0;
+    for (int retry = 0; retry < maxRetries; retry++) {
+      try {
+        await docRef.set({
+          'fileName': fileName,
+          'chunkIndex': chunkIndex,
+          'content': chunk,
+          'uploadedAt': FieldValue.serverTimestamp(),
+        });
+        return;
+      } catch (e) {
+        debugPrint("Chunk upload attempt ${retry + 1} failed: $e");
+        if (retry == maxRetries - 1) rethrow;
+        await Future.delayed(Duration(milliseconds: 500 * (retry + 1)));
       }
-    }
-
-    if (batchWrites > 0) {
-      await batch.commit();
     }
   }
 
@@ -293,12 +292,18 @@ class HomeViewModel extends BaseViewModel {
         .where((e) => e.length > 2)
         .toList();
 
+    if (queryWords.isEmpty) return [];
+
+    final snapshot = await FirebaseFirestore.instance
+        .collection('knowledge_chunks')
+        .limit(20)
+        .get();
+
     final scoredChunks = <Map<String, dynamic>>[];
 
-    for (final chunk in _knowledgeCache) {
+    for (final doc in snapshot.docs) {
+      final content = (doc['content'] as String).toLowerCase();
       int score = 0;
-
-      final content = chunk.content.toLowerCase();
 
       for (final word in queryWords) {
         if (content.contains(word)) {
@@ -309,7 +314,7 @@ class HomeViewModel extends BaseViewModel {
       if (score > 0) {
         scoredChunks.add({
           'score': score,
-          'content': chunk.content,
+          'content': doc['content'],
         });
       }
     }
@@ -343,10 +348,19 @@ class HomeViewModel extends BaseViewModel {
       $question
       """;
 
+      if (flashModel == null || fallbackModel == null) {
+        messages.add({
+          'text': 'AI models are not initialized. Please restart the app.',
+          'isUser': false,
+        });
+        notifyListeners();
+        return;
+      }
+
       GenerateContentResponse response;
 
       try {
-        response = await flashModel.generateContent([Content.text(prompt)]);
+        response = await flashModel!.generateContent([Content.text(prompt)]);
       } catch (apiError) {
         final errorMessage = apiError.toString();
         final is503 = errorMessage.contains('503') ||
@@ -356,7 +370,7 @@ class HomeViewModel extends BaseViewModel {
           await Future.delayed(const Duration(seconds: 2));
 
           response =
-              await fallbackModel.generateContent([Content.text(prompt)]);
+              await fallbackModel!.generateContent([Content.text(prompt)]);
         } else {
           rethrow;
         }

@@ -66,7 +66,7 @@ class InfoAlertDialog extends StackedView<InfoAlertDialogModel> {
             GestureDetector(
               onTap: () => completer(DialogResponse(confirmed: true)),
               child: Container(
-                height: 50,
+                height: 55,
                 width: double.infinity,
                 alignment: Alignment.center,
                 decoration: BoxDecoration(

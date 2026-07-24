@@ -13,13 +13,11 @@ class HomeView extends StackedView<HomeViewModel> {
     HomeViewModel viewModel,
     Widget? child,
   ){
-    return  viewModel.isBusy
-            ? UploadingLearningMaterials(viewModel)
-            : Scaffold(
+    return Scaffold(
                 backgroundColor: viewModel.backgroundColor,
                 appBar: AppBar(
                   backgroundColor: viewModel.primaryColor,
-                  title: Text("Home (${viewModel.role})"),
+                  title: Text(viewModel.role.isEmpty ? "" : "Home (${viewModel.role})"),
                 ),
                 drawer: Drawer(
                   backgroundColor: viewModel.drawerColor,
@@ -58,76 +56,155 @@ class HomeView extends StackedView<HomeViewModel> {
                     ],
                   ),
                 ),
-                body: Column(
+                body: Stack(
                   children: [
-                    Expanded(
-                      child: Container(
-                        color: viewModel.backgroundColor,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(10),
-                          itemCount:
-                              viewModel.messages.length + (viewModel.isAiTyping ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (viewModel.isAiTyping && index == viewModel.messages.length) {
-                              return const Align(
-                                alignment: Alignment.centerLeft,
-                                child: TypingBubble(),
-                              );
-                            }
-                            final msg = viewModel.messages[index];
-                            final isUser = msg['isUser'] == true;
+                    Column(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            color: viewModel.backgroundColor,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.all(10),
+                              itemCount:
+                                  viewModel.messages.length + (viewModel.isAiTyping ? 1 : 0),
+                              itemBuilder: (context, index) {
+                                if (viewModel.isAiTyping && index == viewModel.messages.length) {
+                                  return const Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: TypingBubble(),
+                                  );
+                                }
+                                final msg = viewModel.messages[index];
+                                final isUser = msg['isUser'] == true;
 
-                            return Align(
-                              alignment: isUser
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.symmetric(vertical: 5),
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color:
-                                      isUser ? viewModel.primaryColor : Colors.white,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: MarkdownBody(
-                                  data: msg['text'],
-                                  selectable: true,
-                                  styleSheet: MarkdownStyleSheet(
-                                    p: TextStyle(
+                                return Align(
+                                  alignment: isUser
+                                      ? Alignment.centerRight
+                                      : Alignment.centerLeft,
+                                  child: Container(
+                                    margin: const EdgeInsets.symmetric(vertical: 5),
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
                                       color:
-                                          isUser ? Colors.white : Colors.black,
-                                      fontSize: 16,
+                                          isUser ? viewModel.primaryColor : Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    h1: TextStyle(
-                                      color:
-                                          isUser ? Colors.white : Colors.black,
-                                      fontSize: 24,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    h2: TextStyle(
-                                      color:
-                                          isUser ? Colors.white : Colors.black,
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    strong: TextStyle(
-                                      color:
-                                          isUser ? Colors.white : Colors.black,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    listBullet: TextStyle(
-                                      color:
-                                          isUser ? Colors.white : Colors.black,
+                                    child: MarkdownBody(
+                                      data: msg['text'],
+                                      selectable: true,
+                                      styleSheet: MarkdownStyleSheet(
+                                        p: TextStyle(
+                                          color:
+                                              isUser ? Colors.white : Colors.black,
+                                          fontSize: 16,
+                                        ),
+                                        h1: TextStyle(
+                                          color:
+                                              isUser ? Colors.white : Colors.black,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        h2: TextStyle(
+                                          color:
+                                              isUser ? Colors.white : Colors.black,
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        strong: TextStyle(
+                                          color:
+                                              isUser ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                        listBullet: TextStyle(
+                                          color:
+                                              isUser ? Colors.white : Colors.black,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                        ChatField(context, viewModel),
+                      ],
+                    ),
+                    if (viewModel.isUploading)
+                      Positioned(
+                        bottom: 50,
+                        left: 16,
+                        right: 16,
+                        child: IgnorePointer(
+                          child: Material(
+                            elevation: 4,
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.grey.shade900,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              child: Row(
+                                children: [
+                                  const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      viewModel.uploadStatus,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
                               ),
-                            );
-                          },
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    ChatField(context, viewModel),
+                    if (viewModel.uploadComplete)
+                      Positioned(
+                        top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
+                        left: 16,
+                        right: 16,
+                        child: IgnorePointer(
+                          child: Material(
+                            elevation: 4,
+                            borderRadius: BorderRadius.circular(12),
+                            color: Colors.green.shade700,
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 12),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.check_circle, color: Colors.white, size: 18),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      viewModel.uploadCompleteMessage,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 13,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               );
@@ -163,51 +240,52 @@ class HomeView extends StackedView<HomeViewModel> {
                   );
   }
 
-  Visibility UploadButton(HomeViewModel viewModel) {
+  Widget UploadButton(HomeViewModel viewModel) {
     return Visibility(
-                        visible: viewModel.role != "student",
+                        visible: viewModel.role.isNotEmpty && viewModel.role != "student",
                         child: Align(
                           alignment: Alignment.bottomLeft,
                           child: GestureDetector(
-                              onTap: () {
-                                viewModel.processPdfForKnowledgeBase();
-                              },
+                              onTap: viewModel.isUploading
+                                  ? null
+                                  : () {
+                                      viewModel.processPdfForKnowledgeBase();
+                                    },
                               child: Container(
                                 padding: const EdgeInsets.all(10),
                                 margin: const EdgeInsets.only(left: 20),
                                 decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(10),
-                                    color: Colors.blue),
-                                child: Text("Upload Learning Material"),
+                                    color: viewModel.isUploading
+                                        ? Colors.grey
+                                        : Colors.blue),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (viewModel.isUploading)
+                                      const SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    if (viewModel.isUploading)
+                                      const SizedBox(width: 8),
+                                    Text(viewModel.isUploading
+                                        ? "Uploading..."
+                                        : "Upload Learning Material"),
+                                  ],
+                                ),
                               )),
                         ));
   }
 
-  Material UploadingLearningMaterials(HomeViewModel viewModel) {
-    return Material(
-              child: Stack(
-              children: [
-                if (viewModel.isBusy)
-                  Container(
-                    color: Colors.black45,
-                    child: const Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          CircularProgressIndicator(),
-                          SizedBox(height: 16),
-                          Text(
-                            'Uploading learning materials...\nPlease wait.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ));
-  }
+   @override
+    void onViewModelReady(HomeViewModel viewModel) {
+      viewModel.init(); 
+    }
 
    @override
     HomeViewModel viewModelBuilder(
