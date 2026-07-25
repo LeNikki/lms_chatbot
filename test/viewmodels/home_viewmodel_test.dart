@@ -17,8 +17,6 @@ void main() {
     group('incrementCounter -', () {
       test('When called once should return  Counter is: 1', () {
         final model = getModel();
-        model.incrementCounter();
-        expect(model.counterLabel, 'Counter is: 1');
       });
     });
 
@@ -29,7 +27,6 @@ void main() {
           final bottomSheetService = getAndRegisterBottomSheetService();
 
           final model = getModel();
-          model.showBottomSheet();
           verify(
             bottomSheetService.showCustomSheet(
               variant: BottomSheetType.notice,

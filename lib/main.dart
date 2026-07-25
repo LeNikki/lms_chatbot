@@ -11,12 +11,10 @@ import 'package:stacked_services/stacked_services.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 🔥 Initialize Firebase
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Your existing setup
   await setupLocator();
   setupDialogUi();
   setupBottomSheetUi();

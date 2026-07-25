@@ -35,7 +35,7 @@ class AuthService {
     }
   }
 
-   Future<Map<String, dynamic>?> getUserData() async {
+  Future<Map<String, dynamic>?> getUserData() async {
     final uid = _auth.currentUser!.uid;
 
     final doc = await _firestore.collection('users').doc(uid).get();
@@ -45,7 +45,7 @@ class AuthService {
     }
     return null;
   }
-  
+
   Future<UserCredential> loginUser({
     required String email,
     required String password,
