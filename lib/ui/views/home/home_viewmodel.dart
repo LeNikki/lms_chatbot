@@ -547,7 +547,7 @@ class HomeViewModel extends BaseViewModel {
       final fileMetas = result.files
           .map((f) => UploadFileMetadata(
                 fileName: f.name,
-                title: '',
+                title: f.name,
                 author: '',
               ))
           .toList();
