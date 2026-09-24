@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'dart:typed_data';
 
 import 'package:syncfusion_flutter_pdf/pdf.dart';
 
@@ -18,9 +18,8 @@ class PdfValidationResult {
   });
 }
 
-PdfValidationResult validatePdfSize(String filePath, String fileName) {
-  final file = File(filePath);
-  final sizeBytes = file.lengthSync();
+PdfValidationResult validatePdfSize(Uint8List bytes, String fileName) {
+  final sizeBytes = bytes.length;
 
   if (sizeBytes > maxFileSizeBytes) {
     return PdfValidationResult(
@@ -41,13 +40,11 @@ PdfValidationResult validatePdfSize(String filePath, String fileName) {
 /// Processes a PDF page-by-page, calling [onChunk] for each chunk as it's produced.
 /// Memory stays around 1 page instead of 500 pages.
 /// No large List<String> is ever accumulated.
+/// Tracks the start and end page for each chunk so students can verify sources.
 Future<void> processPdfPages({
-  required String filePath,
-  required Future<void> Function(String chunk) onChunk,
+  required Uint8List bytes,
+  required Future<void> Function(String chunk, int startPage, int endPage) onChunk,
 }) async {
-  final file = File(filePath);
-  final bytes = await file.readAsBytes();
-
   final document = PdfDocument(inputBytes: bytes);
   final extractor = PdfTextExtractor(document);
 
@@ -60,32 +57,42 @@ Future<void> processPdfPages({
     );
   }
 
-  final buffer = StringBuffer();
+  try {
+    final buffer = StringBuffer();
+    int chunkStartPage = 0;
+    int currentPage = 0;
 
-  for (int i = 0; i < pageCount; i++) {
-    final pageText = extractor.extractText(
-      startPageIndex: i,
-      endPageIndex: i,
-    );
+    for (int i = 0; i < pageCount; i++) {
+      final pageText = extractor.extractText(
+        startPageIndex: i,
+        endPageIndex: i,
+      );
 
-    if (pageText.trim().isEmpty) {
-      continue;
+      if (pageText.trim().isEmpty) {
+        continue;
+      }
+
+      currentPage = i + 1;
+
+      if (buffer.length == 0) {
+        chunkStartPage = currentPage;
+      }
+
+      buffer.write(pageText);
+      buffer.write('\n\n');
+
+      if (buffer.length >= defaultChunkSize) {
+        final chunk = buffer.toString().trim();
+        buffer.clear();
+        await onChunk(chunk, chunkStartPage, currentPage);
+      }
     }
 
-    buffer.write(pageText);
-    buffer.write('\n\n');
-
-    if (buffer.length >= defaultChunkSize) {
+    if (buffer.isNotEmpty) {
       final chunk = buffer.toString().trim();
-      buffer.clear();
-      await onChunk(chunk);
+      await onChunk(chunk, chunkStartPage, currentPage);
     }
+  } finally {
+    document.dispose();
   }
-
-  if (buffer.isNotEmpty) {
-    final chunk = buffer.toString().trim();
-    await onChunk(chunk);
-  }
-
-  document.dispose();
 }

@@ -30,6 +30,8 @@ class AuthService {
         'classroomCode': classroomCode,
         'createdAt': FieldValue.serverTimestamp(),
       });
+    } on FirebaseAuthException {
+      rethrow;
     } catch (e) {
       throw Exception("Registration failed: $e");
     }
