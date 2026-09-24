@@ -218,68 +218,6 @@ class HomeView extends StackedView<HomeViewModel> {
                                             ),
                                           ),
                                         ),
-                                        if (!isUser &&
-                                            msg['sources'] != null &&
-                                            (msg['sources'] as List)
-                                                .isNotEmpty)
-                                          Padding(
-                                            padding:
-                                                const EdgeInsets.only(top: 8),
-                                            child: Container(
-                                              width: double.infinity,
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: Colors
-                                                    .blueGrey.shade50,
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                border: Border.all(
-                                                  color: Colors.blueGrey
-                                                      .shade200,
-                                                ),
-                                              ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  const Text(
-                                                    'Sources:',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      color: Colors.blueGrey,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 4),
-                                                  ...(msg['sources']
-                                                          as List)
-                                                      .map<Widget>((src) =>
-                                                          Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .only(
-                                                                    bottom: 2),
-                                                            child: Text(
-                                                              (src['title'] != null &&
-                                                                      '${src['title']}'
-                                                                          .isNotEmpty)
-                                                                  ? '${src['title']}'
-                                                                  : '${src['fileName']}',
-                                                              style:
-                                                                  TextStyle(
-                                                                fontSize: 12,
-                                                                color: Colors
-                                                                    .blueGrey
-                                                                    .shade700,
-                                                              ),
-                                                            ),
-                                                          ))
-                                                      .toList(),
-                                                ],
-                                              ),
-                                            ),
-                                          ),
                                       ],
                                     ),
                                   ),
