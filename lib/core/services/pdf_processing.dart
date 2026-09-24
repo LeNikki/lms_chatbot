@@ -41,9 +41,10 @@ PdfValidationResult validatePdfSize(String filePath, String fileName) {
 /// Processes a PDF page-by-page, calling [onChunk] for each chunk as it's produced.
 /// Memory stays around 1 page instead of 500 pages.
 /// No large List<String> is ever accumulated.
+/// Tracks the start and end page for each chunk so students can verify sources.
 Future<void> processPdfPages({
   required String filePath,
-  required Future<void> Function(String chunk) onChunk,
+  required Future<void> Function(String chunk, int startPage, int endPage) onChunk,
 }) async {
   final file = File(filePath);
   final bytes = await file.readAsBytes();
@@ -60,32 +61,42 @@ Future<void> processPdfPages({
     );
   }
 
-  final buffer = StringBuffer();
+  try {
+    final buffer = StringBuffer();
+    int chunkStartPage = 0;
+    int currentPage = 0;
 
-  for (int i = 0; i < pageCount; i++) {
-    final pageText = extractor.extractText(
-      startPageIndex: i,
-      endPageIndex: i,
-    );
+    for (int i = 0; i < pageCount; i++) {
+      final pageText = extractor.extractText(
+        startPageIndex: i,
+        endPageIndex: i,
+      );
 
-    if (pageText.trim().isEmpty) {
-      continue;
+      if (pageText.trim().isEmpty) {
+        continue;
+      }
+
+      currentPage = i + 1;
+
+      if (buffer.length == 0) {
+        chunkStartPage = currentPage;
+      }
+
+      buffer.write(pageText);
+      buffer.write('\n\n');
+
+      if (buffer.length >= defaultChunkSize) {
+        final chunk = buffer.toString().trim();
+        buffer.clear();
+        await onChunk(chunk, chunkStartPage, currentPage);
+      }
     }
 
-    buffer.write(pageText);
-    buffer.write('\n\n');
-
-    if (buffer.length >= defaultChunkSize) {
+    if (buffer.isNotEmpty) {
       final chunk = buffer.toString().trim();
-      buffer.clear();
-      await onChunk(chunk);
+      await onChunk(chunk, chunkStartPage, currentPage);
     }
+  } finally {
+    document.dispose();
   }
-
-  if (buffer.isNotEmpty) {
-    final chunk = buffer.toString().trim();
-    await onChunk(chunk);
-  }
-
-  document.dispose();
 }

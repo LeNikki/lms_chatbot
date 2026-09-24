@@ -1,5 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_core/firebase_core.dart';
+
 import 'package:flutter/widgets.dart';
 import 'package:lms_chatbot/app/app.locator.dart';
 import 'package:lms_chatbot/app/app.router.dart';
@@ -61,6 +61,24 @@ class RegisterViewModel extends BaseViewModel {
         title: "Success",
         description: "Account created successfully",
       );
+    } on FirebaseAuthException catch (e) {
+      String message;
+      switch (e.code) {
+        case 'email-already-in-use':
+          message =
+              "An account with this email already exists. Please try logging in instead.";
+          break;
+        case 'invalid-email':
+          message = "Please enter a valid email address.";
+          break;
+        case 'weak-password':
+          message = "Password is too weak. Use at least 6 characters.";
+          break;
+        default:
+          message =
+              "Error creating an account, make sure to fill up all required fields";
+      }
+      _dialogService.showDialog(title: "Error", description: message);
     } catch (e) {
       _dialogService.showDialog(
         title: "Error",

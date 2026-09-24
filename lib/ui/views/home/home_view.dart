@@ -18,6 +18,94 @@ class HomeView extends StackedView<HomeViewModel> {
                 appBar: AppBar(
                   backgroundColor: viewModel.primaryColor,
                   title: Text(viewModel.role.isEmpty ? "" : "Home (${viewModel.role})"),
+                  actions: [
+                    if (viewModel.isUploading)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: GestureDetector(
+                          onTap: () {
+                            final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
+                            final overlay = Overlay.of(context).context.findRenderObject() as RenderBox?;
+                            if (renderBox == null || overlay == null) return;
+                            final bellPosition = renderBox.localToGlobal(
+                              Offset(renderBox.size.width - 56, kToolbarHeight),
+                              ancestor: overlay,
+                            );
+                            showMenu(
+                              context: context,
+                              position: RelativeRect.fromLTRB(
+                                bellPosition.dx,
+                                bellPosition.dy,
+                                bellPosition.dx + 1,
+                                bellPosition.dy + 1,
+                              ),
+                              items: [
+                                PopupMenuItem<String>(
+                                  enabled: false,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const SizedBox(
+                                        width: 14,
+                                        height: 14,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Flexible(
+                                        child: Text(
+                                          viewModel.uploadStatus.replaceAll('\n', ' '),
+                                          style: const TextStyle(
+                                            color: Colors.black87,
+                                            fontSize: 13,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: Icon(
+                                  Icons.notifications,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                              Positioned(
+                                right: 6,
+                                top: 6,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Text(
+                                    '1',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
                 drawer: Drawer(
                   backgroundColor: viewModel.drawerColor,
@@ -52,7 +140,7 @@ class HomeView extends StackedView<HomeViewModel> {
                         title: const Text("Logout"),
                         onTap: viewModel.logout,
                       ),
-                      UploadButton(viewModel)
+                      UploadButton(context, viewModel)
                     ],
                   ),
                 ),
@@ -89,37 +177,110 @@ class HomeView extends StackedView<HomeViewModel> {
                                           isUser ? viewModel.primaryColor : Colors.white,
                                       borderRadius: BorderRadius.circular(12),
                                     ),
-                                    child: MarkdownBody(
-                                      data: msg['text'],
-                                      selectable: true,
-                                      styleSheet: MarkdownStyleSheet(
-                                        p: TextStyle(
-                                          color:
-                                              isUser ? Colors.white : Colors.black,
-                                          fontSize: 16,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        MarkdownBody(
+                                          data: msg['text'],
+                                          selectable: true,
+                                          styleSheet: MarkdownStyleSheet(
+                                            p: TextStyle(
+                                              color: isUser
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                              fontSize: 16,
+                                            ),
+                                            h1: TextStyle(
+                                              color: isUser
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                              fontSize: 24,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            h2: TextStyle(
+                                              color: isUser
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            strong: TextStyle(
+                                              color: isUser
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                            listBullet: TextStyle(
+                                              color: isUser
+                                                  ? Colors.white
+                                                  : Colors.black,
+                                            ),
+                                          ),
                                         ),
-                                        h1: TextStyle(
-                                          color:
-                                              isUser ? Colors.white : Colors.black,
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        h2: TextStyle(
-                                          color:
-                                              isUser ? Colors.white : Colors.black,
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        strong: TextStyle(
-                                          color:
-                                              isUser ? Colors.white : Colors.black,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                        listBullet: TextStyle(
-                                          color:
-                                              isUser ? Colors.white : Colors.black,
-                                        ),
-                                      ),
+                                        if (!isUser &&
+                                            msg['sources'] != null &&
+                                            (msg['sources'] as List)
+                                                .isNotEmpty)
+                                          Padding(
+                                            padding:
+                                                const EdgeInsets.only(top: 8),
+                                            child: Container(
+                                              width: double.infinity,
+                                              padding: const EdgeInsets.all(8),
+                                              decoration: BoxDecoration(
+                                                color: Colors
+                                                    .blueGrey.shade50,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                  color: Colors.blueGrey
+                                                      .shade200,
+                                                ),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  const Text(
+                                                    'Sources:',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      color: Colors.blueGrey,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  ...(msg['sources']
+                                                          as List)
+                                                      .map<Widget>((src) =>
+                                                          Padding(
+                                                            padding:
+                                                                const EdgeInsets
+                                                                    .only(
+                                                                    bottom: 2),
+                                                            child: Text(
+                                                              (src['title'] != null &&
+                                                                      '${src['title']}'
+                                                                          .isNotEmpty)
+                                                                  ? '${src['title']}'
+                                                                  : '${src['fileName']}',
+                                                              style:
+                                                                  TextStyle(
+                                                                fontSize: 12,
+                                                                color: Colors
+                                                                    .blueGrey
+                                                                    .shade700,
+                                                              ),
+                                                            ),
+                                                          ))
+                                                      .toList(),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 );
@@ -130,81 +291,8 @@ class HomeView extends StackedView<HomeViewModel> {
                         ChatField(context, viewModel),
                       ],
                     ),
-                    if (viewModel.isUploading)
-                      Positioned(
-                        bottom: 70,
-                        left: 16,
-                        right: 16,
-                        child: IgnorePointer(
-                          child: Material(
-                            elevation: 4,
-                            borderRadius: BorderRadius.circular(12),
-                            color: Colors.grey.shade900,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                              child: Row(
-                                children: [
-                                  const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      viewModel.uploadStatus,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    if (viewModel.uploadComplete)
-                      Positioned(
-                        top: MediaQuery.of(context).padding.top + kToolbarHeight + 8,
-                        left: 16,
-                        right: 16,
-                        child: IgnorePointer(
-                          child: Material(
-                            elevation: 4,
-                            borderRadius: BorderRadius.circular(12),
-                            color: Colors.green.shade700,
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 12),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.check_circle, color: Colors.white, size: 18),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Text(
-                                      viewModel.uploadCompleteMessage,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 13,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
+
+
                   ],
                 ),
               );
@@ -240,7 +328,7 @@ class HomeView extends StackedView<HomeViewModel> {
                   );
   }
 
-  Widget UploadButton(HomeViewModel viewModel) {
+  Widget UploadButton(BuildContext context, HomeViewModel viewModel) {
     return Visibility(
                         visible: viewModel.role.isNotEmpty && viewModel.role != "student",
                         child: Align(
@@ -249,7 +337,7 @@ class HomeView extends StackedView<HomeViewModel> {
                               onTap: viewModel.isUploading
                                   ? null
                                   : () {
-                                      viewModel.processPdfForKnowledgeBase();
+                                      viewModel.processPdfForKnowledgeBase(context);
                                     },
                               child: Container(
                                 padding: const EdgeInsets.all(10),
