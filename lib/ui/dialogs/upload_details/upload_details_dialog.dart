@@ -25,6 +25,9 @@ class _UploadDetailsDialogState extends State<UploadDetailsDialog> {
   late final List<TextEditingController> _authorControllers = _files
       .map((f) => TextEditingController(text: f.author))
       .toList();
+  late final List<TextEditingController> _doiControllers = _files
+      .map((f) => TextEditingController(text: f.doi))
+      .toList();
 
   @override
   void dispose() {
@@ -34,6 +37,9 @@ class _UploadDetailsDialogState extends State<UploadDetailsDialog> {
     for (final c in _authorControllers) {
       c.dispose();
     }
+    for (final c in _doiControllers) {
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -41,6 +47,7 @@ class _UploadDetailsDialogState extends State<UploadDetailsDialog> {
     for (int i = 0; i < _files.length; i++) {
       _files[i].title = _titleControllers[i].text.trim();
       _files[i].author = _authorControllers[i].text.trim();
+      _files[i].doi = _doiControllers[i].text.trim();
     }
 
     widget.completer(DialogResponse(
@@ -102,14 +109,24 @@ class _UploadDetailsDialogState extends State<UploadDetailsDialog> {
                           ),
                         ),
                         const SizedBox(height: 6),
-                        TextField(
-                          controller: _authorControllers[index],
-                          decoration: const InputDecoration(
-                            labelText: 'Author',
-                            isDense: true,
-                            border: OutlineInputBorder(),
-                          ),
+TextField(
+                        controller: _authorControllers[index],
+                        decoration: const InputDecoration(
+                          labelText: 'Author',
+                          isDense: true,
+                          border: OutlineInputBorder(),
                         ),
+                      ),
+                      const SizedBox(height: 6),
+                      TextField(
+                        controller: _doiControllers[index],
+                        decoration: const InputDecoration(
+                          labelText: 'DOI (optional)',
+                          hintText: '10.1000/182',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
                       ],
                     );
                   },

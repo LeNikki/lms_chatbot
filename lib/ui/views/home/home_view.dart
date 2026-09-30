@@ -184,6 +184,7 @@ class HomeView extends StackedView<HomeViewModel> {
                                         MarkdownBody(
                                           data: msg['text'],
                                           selectable: true,
+                                          softLineBreak: true,
                                           styleSheet: MarkdownStyleSheet(
                                             p: TextStyle(
                                               color: isUser

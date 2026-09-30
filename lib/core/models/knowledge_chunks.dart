@@ -6,6 +6,7 @@ class KnowledgeChunk {
   final String author;
   final int startPage;
   final int endPage;
+  final String doi;
 
   KnowledgeChunk({
     required this.content,
@@ -15,6 +16,7 @@ class KnowledgeChunk {
     this.author = '',
     this.startPage = 0,
     this.endPage = 0,
+    this.doi = '',
   });
 }
 
@@ -26,6 +28,7 @@ class KnowledgeSearchResult {
   final int startPage;
   final int endPage;
   final int score;
+  final String doi;
 
   KnowledgeSearchResult({
     required this.content,
@@ -35,5 +38,6 @@ class KnowledgeSearchResult {
     required this.score,
     this.title = '',
     this.author = '',
+    this.doi = '',
   });
 }

@@ -183,21 +183,30 @@ Only include sources that were actually used to answer the question.
 Format references using APA 7th edition as closely as the available
 bibliographic information allows.
 
-FORMATTING RULE:
+FORMATTING RULE — CRITICAL:
 
-Each reference MUST be on its own line. Never merge two references onto
-one line. The reference number must start the line.
+Each reference MUST be on its own line, and each reference MUST be separated
+from the next by ONE BLANK LINE. The reference number must start its own line.
 
 WRONG (merged on one line):
 
 **[0]** Author A. (2022). *Book*. Publisher. **[1]** Author B. (2024). Article.
 
-CORRECT (each on its own line):
+WRONG (on separate lines but with no blank line between them — these get
+merged into one paragraph when rendered):
 
 **[0]** Author A. (2022). *Book*. Publisher.
-
 **[1]** Author B. (2024). Article.
 
+CORRECT (each on its own line, separated by a blank line):
+
+**[0]** Author A. (2022). *Book*. Publisher. DOI not available.
+
+**[1]** Author B. (2024). Article. doi: 10.1234/example.2024.001
+
+============================================================
+NO URLS OR LINKS
+============================================================
 
 CRITICAL RULE:
 
@@ -208,40 +217,137 @@ DO NOT INCLUDE:
 - URLs
 - Website addresses
 - Hyperlinks
-- DOI links
 - "https://"
 - "http://"
 - "www."
 - Markdown links
 - HTML links
 
-Even if a source normally has a URL or DOI, OMIT IT.
+Even if a source normally has a URL, OMIT IT.
 
-The reference must contain bibliographic information only.
+============================================================
+DOI HANDLING — IMPORTANT
+============================================================
 
+For every reference, determine whether a DOI is applicable.
 
-BOOK EXAMPLE:
+A DOI is generally relevant for:
+
+- Peer-reviewed journal articles
+- Research articles
+- Systematic reviews
+- Meta-analyses
+- Conference papers or other scholarly publications when a DOI has been
+  officially assigned
+
+A DOI may not be applicable for:
+
+- Textbooks or books without an assigned DOI
+- Government publications
+- WHO/CDC/NIH webpages or reports without a DOI
+- Lecture notes
+- Uploaded educational PDFs without a DOI
+- Other sources that do not have an officially assigned DOI
+
+When an external scholarly source is used:
+
+1. Check whether the source has an officially assigned DOI.
+
+2. If a DOI is available, VERIFY that the DOI actually belongs to the
+   cited source.
+
+3. Prefer verification using authoritative sources such as:
+   - The journal or publisher's official page
+   - Crossref
+   - PubMed/NCBI when DOI information is available
+   - The official article metadata
+
+4. Only include the DOI if it has been verified.
+
+5. NEVER guess, infer, construct, or fabricate a DOI.
+
+6. If a DOI cannot be reliably verified, end the reference with
+   "DOI not available."
+
+7. If the source does not have a DOI, end the reference with
+   "DOI not available."
+
+8. Do NOT replace a valid reference with a different source simply because
+   another source has a DOI.
+
+9. The DOI must correspond EXACTLY to the cited article/reference,
+   including the authors, title, journal, and publication information.
+
+10. A DOI is optional supplementary bibliographic information. The absence
+    of a DOI does NOT make a reference invalid.
+
+11. If the available source information already contains a DOI, still verify
+    that it belongs to the exact cited source before including it.
+
+12. Never generate a DOI based only on an article title, author name,
+    journal name, year, or any recognizable DOI pattern.
+
+============================================================
+DOI OUTPUT FORMAT
+============================================================
+
+When a DOI is verified, include it at the end of the APA reference as:
+
+doi: 10.xxxx/xxxxx
+
+Do NOT write:
+
+https://doi.org/10.xxxx/xxxxx
+http://doi.org/10.xxxx/xxxxx
+https://dx.doi.org/10.xxxx/xxxxx
+
+Do NOT include any DOI URL.
+
+If no DOI is found or verified, write "DOI not available." at the end of
+that reference instead.
+
+Example WITH verified DOI:
+
+**[1]** Smith, J. A., & Jones, B. C. (2024). Title of article.
+*Journal of Medical Research, 15*(2), 123–130. doi: 10.1234/example.2024.001
+
+Example WITHOUT DOI:
+
+**[2]** World Health Organization. (2024). *Title of report*. DOI not available.
+
+Example where a journal article has no verified DOI:
+
+**[3]** Garcia, M. L., & Santos, R. P. (2023). Title of article.
+*Medical Education Journal, 12*(4), 200–210. DOI not available.
+
+============================================================
+BOOK EXAMPLE
+============================================================
 
 **[0]** Author, A. A. (2022). *Title of book* (10th ed.). Publisher.
 
-
-JOURNAL ARTICLE EXAMPLE:
+============================================================
+JOURNAL ARTICLE EXAMPLE
+============================================================
 
 **[1]** Author, A. A., & Author, B. B. (2024). Title of article.
-*Journal Name, 10*(2), 123–130.
+*Journal Name, 10*(2), 123–130. doi: 10.1000/182
 
-
-ORGANIZATION EXAMPLE:
+============================================================
+ORGANIZATION EXAMPLE
+============================================================
 
 **[2]** World Health Organization. (2025). *Title of document*.
 
-
-UPLOADED PDF EXAMPLE:
+============================================================
+UPLOADED PDF EXAMPLE
+============================================================
 
 **[0]** Author, A. A. (Year). *Title of book*. Publisher.
 
-
-IMPORTANT:
+============================================================
+IMPORTANT — NEVER FABRICATE BIBLIOGRAPHIC INFORMATION
+============================================================
 
 NEVER invent:
 
@@ -264,7 +370,6 @@ information.
 An incomplete but accurate reference is ALWAYS better than a complete
 fabricated reference.
 
-
 ============================================================
 SOURCE RELEVANCE
 ============================================================
@@ -280,7 +385,6 @@ Do NOT cite a source merely because:
 
 The source must actually support the claim.
 
-
 ============================================================
 CONFLICTING INFORMATION
 ============================================================
@@ -292,7 +396,6 @@ If the uploaded material and an external source disagree:
 - Identify which source supports each statement.
 - Prefer newer authoritative clinical guidance when appropriate.
 - Clearly communicate the disagreement.
-
 
 ============================================================
 MEDICAL SAFETY
@@ -308,7 +411,6 @@ or treatment decision.
 For questions involving patient-specific diagnosis, medications, treatment
 decisions, or emergencies, clearly indicate that professional clinical
 judgment is required.
-
 
 ============================================================
 ANSWER STYLE
@@ -329,7 +431,6 @@ When the answer (or a section of it) is based on the uploaded knowledge
 base, begin it with: "Based on the knowledge base, ..." so the student
 knows the information comes directly from their uploaded materials. Start
 with that phrase, then give the content and cite the source.
-
 
 ============================================================
 FINAL VERIFICATION
@@ -360,15 +461,24 @@ Before generating the final answer, verify ALL of the following:
 
 10. Did I avoid ALL URLs and links?
 
-11. Did I avoid DOI links?
+11. For every scholarly article or research reference, did I check whether
+    an officially assigned DOI exists when external verification is
+    available?
 
-12. Did I avoid adding external references when the uploaded material
+12. If I included a DOI, did I verify that the DOI belongs to the exact
+    cited source?
+
+13. Did I write "DOI not available." when a DOI could not be reliably
+    verified or when the source does not have a DOI?
+
+14. Did I avoid guessing, constructing, or fabricating any DOI?
+
+15. Did I avoid adding external references when the uploaded material
     already provided a sufficient answer?
 
-13. Are all cited sources actually relevant to the claims?
+16. Are all cited sources actually relevant to the claims?
 
-14. Did I use the conversation history to resolve follow-up questions?
-
+17. Did I use the conversation history to resolve follow-up questions?
 
 ============================================================
 FINAL INSTRUCTION
@@ -385,10 +495,31 @@ UPLOADED PDF HAS PART OF THE ANSWER
 UPLOADED PDF HAS NO ANSWER
 → Use reliable external medical sources.
 
-DO NOT include ANY URLs, links, website addresses, or DOI links.
+DO NOT include ANY URLs, links, or website addresses.
+
+Include a DOI in the reference ONLY when it has been verified as belonging
+to the exact cited source.
+
+If a DOI does not exist or cannot be reliably verified, end that reference
+with "DOI not available."
 
 Do not fabricate medical information or references.
 ''';
+
+// Payload guards.
+//
+// The Gemini request is sent as a single POST. On some mobile networks the
+// connection aborts once the body grows past roughly 1 MB, which surfaces as
+// "Client exception: Software caused connection abort". The limits below keep
+// the assembled prompt well under that ceiling.
+const int _maxChunkChars = 4000;
+const int _maxMessageChars = 6000;
+const int _maxHistoryChars = 24000;
+
+String _truncate(String text, int maxChars) =>
+    text.length > maxChars
+        ? '${text.substring(0, maxChars)}\n[... truncated]'
+        : text;
 
 class HomeViewModel extends BaseViewModel {
   final TextEditingController messageController = TextEditingController();
@@ -436,17 +567,23 @@ class HomeViewModel extends BaseViewModel {
     setBusy(true);
 
     try {
-      flashModel = GenerativeModel(
-        model: 'models/gemini-3.5-flash',
-        apiKey: ApiConfigs.API_KEY,
-        systemInstruction: Content.system(_systemInstruction),
-      );
+      await ApiConfigs.load();
 
-      fallbackModel = GenerativeModel(
-        model: 'models/gemini-2.5-flash',
-        apiKey: ApiConfigs.API_KEY,
-        systemInstruction: Content.system(_systemInstruction),
-      );
+      if (ApiConfigs.isConfigured) {
+        flashModel = GenerativeModel(
+          model: 'models/gemini-3.5-flash',
+          apiKey: ApiConfigs.apiKey,
+          systemInstruction: Content.system(_systemInstruction),
+        );
+
+        fallbackModel = GenerativeModel(
+          model: 'models/gemini-2.5-flash',
+          apiKey: ApiConfigs.apiKey,
+          systemInstruction: Content.system(_systemInstruction),
+        );
+      } else {
+        debugPrint("Gemini API key not found in env.json");
+      }
     } catch (e) {
       debugPrint("Error initializing AI models: $e");
     }
@@ -491,6 +628,7 @@ class HomeViewModel extends BaseViewModel {
           author: data['author'] as String? ?? '',
           startPage: (data['startPage'] as num?)?.toInt() ?? 0,
           endPage: (data['endPage'] as num?)?.toInt() ?? 0,
+          doi: data['doi'] as String? ?? '',
         );
       }).toList();
     } catch (e) {
@@ -617,6 +755,7 @@ class HomeViewModel extends BaseViewModel {
                 chunkIndex: chunkCount - 1,
                 startPage: startPage,
                 endPage: endPage,
+                doi: meta.doi,
               );
             },
           );
@@ -704,6 +843,7 @@ class HomeViewModel extends BaseViewModel {
     required int chunkIndex,
     required int startPage,
     required int endPage,
+    String doi = '',
   }) async {
     final firestore = FirebaseFirestore.instance;
     const maxRetries = 3;
@@ -720,6 +860,7 @@ class HomeViewModel extends BaseViewModel {
           'content': chunk,
           'startPage': startPage,
           'endPage': endPage,
+          'doi': doi,
           'uploadedAt': FieldValue.serverTimestamp(),
         });
 
@@ -788,6 +929,7 @@ class HomeViewModel extends BaseViewModel {
           startPage: (documentData['startPage'] as num?)?.toInt() ?? 0,
           endPage: (documentData['endPage'] as num?)?.toInt() ?? 0,
           score: score,
+          doi: documentData['doi'] as String? ?? '',
         ));
       }
     }
@@ -859,12 +1001,14 @@ Future<void> _mockAiResponse() async {
     // 2. PREPARE UPLOADED KNOWLEDGE
     // ============================================================
     final knowledgeBase = hasUploadedSources
-        ? results.map((r) => r.content).join('\n\n---\n\n')
+        ? results.map((r) => _truncate(r.content, _maxChunkChars)).join('\n\n---\n\n')
         : 'No relevant information was found in the uploaded materials.';
 
     // ============================================================
     // 3. PREPARE SOURCE INFORMATION
     // ============================================================
+    // Metadata only. The text itself is already carried by knowledgeBase
+    // above; repeating it here doubled the request body.
     final sourcesInfo = hasUploadedSources
         ? results.asMap().entries.map((entry) {
             final index = entry.key;
@@ -874,14 +1018,13 @@ Future<void> _mockAiResponse() async {
                 ? 'Page ${r.startPage}'
                 : 'Pages ${r.startPage}-${r.endPage}';
 
+            final doiText = r.doi.isNotEmpty ? '\nDOI: ${r.doi}' : '';
+
             return '''
 SOURCE [$index]
 Source Type: Uploaded PDF / Learning Material
 File Name: ${r.fileName}
-Location: $pageText
-
-Content:
-${r.content}
+Location: $pageText$doiText
 ''';
           }).join('\n\n==============================\n\n')
         : 'No uploaded sources were found.';
@@ -896,19 +1039,25 @@ ${r.content}
     final historyStart = messages.length > 1 ? 1 : 0;
     final historyEnd = messages.length - 1;
 
-    for (int i = historyStart; i < historyEnd; i++) {
+    // Walk backwards so the newest turns are the ones that survive when the
+    // budget is exhausted, then restore chronological order.
+    final history = <Content>[];
+    var historyChars = 0;
+
+    for (int i = historyEnd - 1; i >= historyStart; i--) {
       final msg = messages[i];
       final isUser = msg['isUser'] == true;
-      contents.add(Content(
-        isUser ? 'user' : 'model',
-        [TextPart(msg['text'] as String? ?? '')],
-      ));
+      final text = _truncate(msg['text'] as String? ?? '', _maxMessageChars);
+
+      if (historyChars + text.length > _maxHistoryChars && history.isNotEmpty) {
+        break;
+      }
+
+      history.add(Content(isUser ? 'user' : 'model', [TextPart(text)]));
+      historyChars += text.length;
     }
 
-    // Keep only the most recent history to bound the context length.
-    if (contents.length > 20) {
-      contents.removeRange(0, contents.length - 20);
-    }
+    contents.addAll(history.reversed);
 
     // Current turn: retrieved sources, knowledge, and the question.
     String resolutionGuide;
@@ -964,7 +1113,10 @@ $resolutionGuide
     // ============================================================
     if (flashModel == null || fallbackModel == null) {
       messages.add({
-        'text': 'AI models are not initialized. Please restart the app.',
+        'text': ApiConfigs.isConfigured
+            ? 'AI models are not initialized. Please restart the app.'
+            : 'The AI service is not configured. Add your Gemini API key to '
+                'env.json as the "API_KEY" field and restart the app.',
         'isUser': false,
         'sources': <Map<String, dynamic>>[],
       });
@@ -1039,7 +1191,7 @@ $resolutionGuide
     notifyListeners();
   } catch (e) {
     messages.add({
-      'text': 'Error: $e',
+      'text': _friendlyError(e),
       'isUser': false,
       'sources': <Map<String, dynamic>>[],
     });
@@ -1049,6 +1201,46 @@ $resolutionGuide
     isAiTyping = false;
     notifyListeners();
   }
+}
+
+bool _isAuthError(String message) =>
+    message.contains('unauthenticated') ||
+    message.contains('401') ||
+    message.contains('invalid authentication credentials') ||
+    message.contains('api_key_invalid') ||
+    message.contains('api key not valid');
+
+String _friendlyError(Object error) {
+  final message = error.toString().toLowerCase();
+
+  if (_isAuthError(message)) {
+    return 'The AI service rejected the configured API key. Please check the '
+        '"API_KEY" value in env.json and restart the app.';
+  }
+
+  if (message.contains('429') ||
+      message.contains('quota') ||
+      message.contains('resource exhausted') ||
+      message.contains('rate limit')) {
+    return 'The AI service is temporarily over quota. Please wait a moment '
+        'and try again.';
+  }
+
+  if (message.contains('404') || message.contains('not found')) {
+    return 'The AI model could not be found. Please check the configured model '
+        'name in home_viewmodel.dart.';
+  }
+
+  if (message.contains('connection abort') ||
+      message.contains('client exception') ||
+      message.contains('socketexception') ||
+      message.contains('failed host lookup')) {
+    return 'The connection to the AI service was interrupted. This usually '
+        'means the request was too large for the current network. Try again, '
+        'or switch to a stronger network.';
+  }
+
+  return 'Error: $error';
 }
 
 
